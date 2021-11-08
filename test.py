@@ -1,5 +1,6 @@
 # Importing helper visualisation functions
 #MiniHack-Quest-Hard-v0
+#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
 
 # from minihack.tiles.rendering import get_des_file_rendering
 #
@@ -10,7 +11,7 @@
 
 import gym
 import minihack
-env = gym.make("MiniHack-River-v0", observation_keys=("pixel", "glyphs", "colors", "chars"),
+env = gym.make("MiniHack-Quest-Hard-v0", observation_keys=("pixel", "glyphs", "colors", "chars"),
 max_episode_steps=100)
 env.reset() # each reset generates a new environment instance
 env.step(1)  # move agent '@' north
@@ -24,7 +25,7 @@ nethack.Command.KICK,
 nethack.Command.SEARCH,
 )
 env = gym.make(
-"MiniHack-Corridor-R3-v0",
+"MiniHack-Quest-Hard-v0",
 actions=NAVIGATE_ACTIONS,
 )
 
