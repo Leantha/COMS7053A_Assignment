@@ -1,6 +1,6 @@
 """
-Modified the DQN method from https://github.com/raillab/dqn
-
+The DQN agent was created aided by the following resource found online :
+https://github.com/chengxi600/RLStuff/blob/master/
 """
 import matplotlib.pyplot as plt
 import gym
@@ -153,11 +153,6 @@ class Agent():
                 print('Error loading start step, starting from 0')
                 self.start_step = 0
 
-        # TODO Initialise your agent's models
-
-        # for example, if your agent had a Pytorch model it must be load here
-        # model.load_state_dict(torch.load( 'path_to_network_model_file', map_location=torch.device(device)))
-
     def optimize_td_loss(self):
         """
         Optimise the TD-error over a minibatch of transitions
@@ -178,18 +173,14 @@ class Agent():
             Q_val_next_max = self.target_network(glyphs_states_, stats_states_)
             Q_val_next_max = Q_val_next_max.gather(1, action_next_max.unsqueeze(1)).squeeze()
 
-        # Set y_j for each mini-batch entry,
-        # If terminal then Q = rewards only
+        # Set y_j for each mini-batch
         Q_target = rewards + (1 - dones) * self.flags.discount_factor * Q_val_next_max
-        # Recompute gradients and get values
+        # Recompute gradients
         Q_current = self.policy_network(glyphs_states, stats_states)
         Q_current = Q_current.gather(1, actions.unsqueeze(1)).squeeze()
 
 
         # Perform a gradient descent step on (y_j - Q)^2 ( loss )
-        # Before backward pass, use optimizer to zero all the gradients of the tensors
-        # it has to update
-        # Compute the Hubert loss
         loss = F.smooth_l1_loss(Q_current, Q_target)
         # Backward pass: compute gradients
         self.optimizer.zero_grad()
@@ -208,7 +199,7 @@ class Agent():
     def _act(self, observed_glyphs, observed_stats):
         observed_glyphs = torch.from_numpy(observed_glyphs).float().unsqueeze(0).to(self.flags.device)
         observed_stats = torch.from_numpy(observed_stats).float().unsqueeze(0).to(self.flags.device)
-        # Don't compute gradients, just get values
+        # Get values
         with torch.no_grad():
             Q_vals = self.policy_network(observed_glyphs, observed_stats)
         Q_val_max, action_max = Q_vals.max(1)
@@ -231,8 +222,6 @@ class Agent():
             else:
                 action = self._act(observed_glyphs, observed_stats)
 
-            # Take a leap of faith in the environment, store transition
-            # info for mini-batch SGD
             state_, reward, done, info = self.env.step(action)
 
             # Add step reward
@@ -255,7 +244,8 @@ class Agent():
                                        float(done))
                 current_state = state_
                 high_score = max(current_state['blstats'][STATS_INDICES['score']], high_score)
-            # Optimise TD loss
+                
+            # TD loss
             if time_step > self.flags.batch_size + self.start_step:
                 #if len(self.buffer_memory) >= self.flags.batch_size:
                 loss = self.optimize_td_loss()
@@ -290,7 +280,7 @@ class Agent():
                     ret[n:] = ret[n:] - ret[:-n]
                     return ret / n
 
-                moving_avg = moving_average(high_score, 25)
+                moving_avg = moving_average(high_score, 50)
 
                 # Plot learning curve
                 plt.figure(figsize=(12, 6))
@@ -309,15 +299,14 @@ class Agent():
             current_state = env.reset()
             done = False
             steps = 0
-            while not done and steps < 5000:
+            while not done and steps < 1000:
                 observed_glyphs, observed_stats = transform_observation(current_state)
                 # Sample action from dqn
                 action = self._act(observed_glyphs, observed_stats)
-                # Take a leap of faith in the environment
                 state_, reward, done, info = env.step(action)
                 current_state = state_
-                # Add step reward
-                episode_rewards[-0.001] += reward
+                # Step reward
+                episode_rewards[-0.01] += reward
                 # Game-over
                 steps += 1
                 if done:

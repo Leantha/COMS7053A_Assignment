@@ -1,15 +1,14 @@
 import numpy as np
-
+"""
+The DQN agent was created aided by the following resource found online :
+https://github.com/chengxi600/RLStuff/blob/master/
+"""
 class ReplayBuffer:
     """
     Simple storage for transitions from an environment.
     """
 
     def __init__(self, size):
-        """
-        Initialise a buffer of a given size for storing transitions
-        :param size: the maximum number of transitions that can be stored
-        """
         self._storage = []
         self._batch_size = size
         self._next_idx = 0
