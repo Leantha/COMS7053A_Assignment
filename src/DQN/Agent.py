@@ -33,12 +33,12 @@ registration.register(
 )
 
 parser = argparse.ArgumentParser(description="DQN Agent")
-parser.add_argument("--path", type=str, default="/home/leantha/Downloads/DQN/",
+parser.add_argument("--path", type=str, default="/home/clerence/Documents/MiniHack/DQN",
                     help="System storage path")
 parser.add_argument("--test_seeds", type=list, default=[1,2,3,4,5], help="which seed to evaluate trained model.")
 parser.add_argument("--load", type=bool, default=False,
                     help="Load weights from file")
-parser.add_argument("--total_steps", default=3000000, type=int,
+parser.add_argument("--total_steps", default=1000000, type=int,
                     help="Total number of steps to train over")
 parser.add_argument("--env", type=str, default="MiniHack-Quest-Hard-v0",
                     help="Gym environment.")
@@ -82,7 +82,14 @@ ACTIONS = [
     nethack.CompassCardinalDirection.N,
     nethack.CompassCardinalDirection.E,
     nethack.CompassCardinalDirection.S,
-    nethack.CompassCardinalDirection.W
+    nethack.CompassCardinalDirection.W,
+    nethack.Command.FIRE,
+    nethack.Command.KICK,
+    nethack.Command.OPEN,
+    nethack.Command.UP,
+    nethack.Command.DOWN,
+    nethack.Command.SEARCH,
+    nethack.Command.ZAP
 ]
 
 
@@ -293,7 +300,7 @@ class Agent():
                 state_, reward, done, info = env.step(action)
                 current_state = state_
                 # Add step reward
-                episode_rewards[-1] += reward
+                episode_rewards[-0.001] += reward
                 # Game-over
                 steps += 1
                 if done:
@@ -310,6 +317,63 @@ def main(flags):
     else:
         agent.test()
 
+#############video#################################
+import gym
+import cv2
+
+
+cv2.ocl.setUseOpenCL(False)
+
+
+class RenderRGB(gym.Wrapper):
+    def __init__(self, env, key_name="pixel"):
+        super().__init__(env)
+        self.last_pixels = None
+        self.viewer = None
+        self.key_name = key_name
+
+        render_modes = env.metadata['render.modes']
+        render_modes.append("rgb_array")
+        env.metadata['render.modes'] = render_modes
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        self.last_pixels = obs[self.key_name]
+        return obs, reward, done, info
+
+    def render(self, mode="human", **kwargs):
+        img = self.last_pixels
+
+        # Hacky but works
+        if mode != "human":
+            return img
+        else:
+            from gym.envs.classic_control import rendering
+
+            if self.viewer is None:
+                self.viewer = rendering.SimpleImageViewer()
+            self.viewer.imshow(img)
+            return self.viewer.isopen
+
+    def reset(self):
+        obs = self.env.reset()
+        self.last_pixels = obs[self.key_name]
+        return obs
+
+    def close(self):
+        if self.viewer is not None:
+            self.viewer.close()
+            self.viewer = None
+
+
+pixel_obs = "pixel_crop" # Or could be be 'pixel_crop'
+env = gym.make("MiniHack-Quest-Hard-v0", observation_keys=("glyphs", "blstats", pixel_obs))
+env.seed()
+env = RenderRGB(env, pixel_obs)
+env = gym.wrappers.Monitor(env, "recordings", force=True)
+
+
+#############################
 
 if __name__ == "__main__":
     flags = parser.parse_args()
