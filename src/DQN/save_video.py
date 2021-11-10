@@ -1,6 +1,8 @@
 import gym
 import cv2
-
+"""
+Help from Simon in class who shared his wrapper openly to the group
+"""
 
 cv2.ocl.setUseOpenCL(False)
 
