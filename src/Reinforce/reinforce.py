@@ -1,3 +1,9 @@
+"""
+The REINFORCE agent was created using the Reinforcement Lab 4 assisgnment. This was also aided by the following two resources found online in order solve the NetHack game:
+https://github.com/chengxi600/RLStuff/blob/master/Policy%20Gradients/REINFORCE.ipynb
+https://github.com/chengxi600/RLStuff/blob/master/Policy%20Gradients/REINFORCE-Baseline.ipynb
+"""
+
 import subprocess
 import sys
 
@@ -25,7 +31,7 @@ class MiniHackNewTask(MiniHackNavigation):
 
 registration.register(
     id="MiniHack-NewTask-v0",
-    entry_point="path.to.file:MiniHackNewTask", # use the actual the path
+    entry_point="path.to.file:MiniHackNewTask", 
 )
 
 ACTIONS = [
@@ -84,9 +90,9 @@ def crop_glyphs(glyphs, x, y, size=7):
     for row in y_range:
         for col in x_range:
             window_glyphs.append(glyphs[row][col])
-    # return crop.flatten()
+            
     crop = np.asarray(window_glyphs)
-    # crop = window_glyphs.copy()
+
     return crop
 
 
@@ -97,17 +103,12 @@ def transform_observation(observation):
 
     stat_x_coord = observation['blstats'][STATS_INDICES['x_coordinate']]
     stat_y_coord = observation['blstats'][STATS_INDICES['y_coordinate']]
-    stat_health = float(observation['blstats'][STATS_INDICES['health_points']]) - float(
-        observation['blstats'][STATS_INDICES['health_points_max']] / 2)
+    stat_health = float(observation['blstats'][STATS_INDICES['health_points']]) - float(observation['blstats'][STATS_INDICES['health_points_max']] / 2)
     stat_hunger = observation['blstats'][STATS_INDICES['hunger_level']]
 
     observed_chars = observation['chars']
     cropped_chars = crop_glyphs(observed_chars, stat_x_coord, stat_y_coord)
-    # chars_mean = np.mean(cropped_chars)
-    # chars_std = np.std(cropped_chars)
-    # print('MEAN:', chars_mean)
-    # print('STD:', chars_std)
-    # norm_chars = (cropped_chars - chars_mean)/chars_std
+
     chars_min = np.min(cropped_chars)
     chars_max = np.max(cropped_chars)
     chars_range = chars_max - chars_min
@@ -125,7 +126,6 @@ class SimplePolicy(nn.Module):
                                     nn.Dropout(p=0.5, inplace=True),
                                     nn.ReLU(),
                                     nn.Linear(h2_size, a_size)).to(device)
-
         self.optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
 
     def forward(self, x):
@@ -157,60 +157,46 @@ def reinforce(env, policy_model, seed, learning_rate,
 
     scores = []
     losses = []
+    
     for episode in range(number_episodes):
-
         rewards = []
         log_probs = []
         state = transform_observation(env.reset())
         done = False
-        # for step in range(max_episode_length):
+        
+        # Steps in each episode
         while not done:
             action_probs = policy_model.forward(torch.from_numpy(state).float().to(device))
-            # action_probs_copy = torch.empty_like(action_probs).copy_(action_probs)
-            # action_probs_copy[9:17] = 0
-            # action_probs_copy[19] = 0
-            # action_probs_copy[0] = 0
-            # print(action_probs_copy)
             action_sampler = torch.distributions.Categorical(action_probs)
             action = action_sampler.sample()
-            # print('#########ACTION########: ', action.item())
-            # print('#########Message#######:', state.shape)
             log_probs.append(action_sampler.log_prob(action))
             new_state, reward, done, info = env.step(action.item())
-            if reward == 0:
-                reward = -0.001
-            else:
-                reward = reward
             rewards.append(reward)
             state = transform_observation(new_state)
-            # env.render()
-            # if done:
-            #     break
 
-        #with torch.no_grad():
 
         scores.append(sum(rewards))
         returns = compute_returns(rewards, gamma)
         loss = -1 * np.sum(np.array(log_probs) * returns)
         losses.append(loss)
         policy_model.optimizer.zero_grad()
-        #loss.backward()
         nn.utils.clip_grad_norm_(policy_model.parameters(), 5.0)
         policy_model.optimizer.step()
 
-        window = 25
+        window = 50
         if verbose and episode % window == 0 and episode != 0:
             print("Episode " + str(episode) + "/" + str(number_episodes) +
                   " Score: " + str(np.mean(scores[episode - window: episode])) +
                   ' Losses: ' + str(sum(losses[episode - window:episode])))
 
-
     policy = policy_model.parameters()
+
     return policy_model, scores, losses
 
+
 def run_reinforce():
-    env = gym.make("MiniHack-Quest-Hard-v0", actions=ACTIONS)  # actions = ACTIONS
-    print("Run REINFORCE.")
+    env = gym.make("MiniHack-Quest-Hard-v0", actions=ACTIONS) 
+    print("REINFORCE is now running")
     obs_space = transform_observation(env.reset())
     obs_space_size = obs_space.shape[0]
     policy_model = SimplePolicy(s_size=obs_space_size,
@@ -222,26 +208,23 @@ def run_reinforce():
                                        seed=42,
                                        learning_rate=1e-2,
                                        number_episodes=1000,
-                                       max_episode_length=1500,
-                                       gamma=1.0,
+                                       max_episode_length=1000,
+                                       gamma=0.99,
                                        verbose=True)
-    with open('/home/clerence/Documents/MiniHack/reinforce1/state_msg4.pkl', 'wb') as f:
+    with open('/home/leantha/Downloads/RL/state_msg4.pkl', 'wb') as f:
         pickle.dump([policy_model, scores, losses], f)
 
-    moving_avg = moving_average(scores, 25)
+    moving_avg = moving_average(scores, 50)
 
-    # Plot learning curve
     plt.figure(figsize=(12, 6))
     plt.plot(scores)
     plt.plot(moving_avg, '--')
-    plt.legend(['Score', 'Moving Average (w=50)'])
+    plt.legend(['Score', 'Moving Average (w=50)'], loc='upper right')
     plt.title("REINFORCE learning curve")
     plt.xlabel("Episode")
     plt.ylabel("Score")
-    plt.savefig('/home/clerence/Documents/MiniHack/reinforce1/reinforcerl.png')
+    plt.savefig('/home/leantha/Downloads/RL/reinforcelr.png')
 
 
 if __name__ == '__main__':
     run_reinforce()
-    # mean, std, x_fill, y_upper, y_lower = investigate_variance_in_reinforce()
-    # run_reinforce_with_naive_baseline(mean, std, x_fill, y_upper, y_lower)
