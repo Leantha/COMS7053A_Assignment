@@ -225,6 +225,36 @@ def run_reinforce():
     plt.ylabel("Score")
     plt.savefig('/home/leantha/Downloads/RL/reinforcelr.png')
 
+################################Video########################################################    
+    
+    hyper_params = {
+        "seed": 42,  # which seed to use
+        "env-name": "MiniHack-Quest-Hard-v0",  # name of the game
+        "replay-buffer-size": int(5e3),  # replay buffer size
+        "learning-rate": 1e-4,  # learning rate for Adam optimizer
+        "discount-factor": 0.99,  # discount factor
+        "num-steps": int(5e6),  # total number of steps to run the environment for
+        "batch-size": 256,  # number of transitions to optimize at the same time
+        "learning-starts": 10000,  # number of steps before learning starts
+        "learning-freq": 2,  # number of iterations between every optimization step
+        "use-double-dqn": True,  # use double deep Q-learning
+        "target-update-freq": 1000,  # number of iterations between every target network update
+        "eps-start": 1.0,  # e-greedy start threshold
+        "eps-end": 0.1,  # e-greedy end threshold
+        "eps-fraction": 0.2,  # fraction of num-steps
+        "print-freq": 25, # number of iterations between each print out
+        "save-freq": 500, # number of iterations between each model save
+    }
 
+    np.random.seed(hyper_params["seed"])
+    random.seed(hyper_params["seed"])
+
+    pixel_obs = "pixel_crop"
+    env = gym.make(hyper_params["env-name"], observation_keys=("glyphs", "blstats", pixel_obs))
+    env.seed(hyper_params["seed"])
+
+    env = gym.wrappers.Monitor(env, "./video2", video_callable=lambda episode_id: True,force=True)
+
+#################################################################################################
 if __name__ == '__main__':
     run_reinforce()
