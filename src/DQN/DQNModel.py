@@ -1,6 +1,6 @@
 """
-Modified the DQN method from https://github.com/raillab/dqn
-
+The DQN agent was created aided by the following resource found online :
+https://github.com/chengxi600/RLStuff/blob/master/
 """
 
 import torch
@@ -12,7 +12,6 @@ class Crop(nn.Module):
     """Helper class to crop observations around an agent's position.
     Borrowed from
     https://github.com/facebookresearch/nle/blob/master/nle/agent/agent.py
-
     """
 
     def __init__(self, height, width, height_target, width_target):
@@ -21,19 +20,13 @@ class Crop(nn.Module):
         self.height = height
         self.width_target = width_target
         self.height_target = height_target
-        width_grid = self._step_to_range(2 / (self.width - 1), self.width_target)[
-                     None, :
-                     ].expand(self.height_target, -1)
-        height_grid = self._step_to_range(2 / (self.height - 1), height_target)[
-                      :, None
-                      ].expand(-1, self.width_target)
+        width_grid = self._step_to_range(2 / (self.width - 1), self.width_target)[None, :].expand(self.height_target, -1)
+        height_grid = self._step_to_range(2 / (self.height - 1), height_target)[:, None].expand(-1, self.width_target)
 
-        # "clone" necessary, https://github.com/pytorch/pytorch/issues/34880
         self.register_buffer("width_grid", width_grid.clone())
         self.register_buffer("height_grid", height_grid.clone())
 
     def _step_to_range(self, delta, num_steps):
-        """Range of `num_steps` integers with distance `delta` centered around zero."""
         return delta * torch.arange(-num_steps // 2, num_steps // 2)
 
     def forward(self, inputs, coordinates):
@@ -63,7 +56,6 @@ class Crop(nn.Module):
             dim=3,
         )
 
-        # TODO: only cast to int if original tensor was int
         return (
             torch.round(F.grid_sample(inputs, grid, align_corners=True))
                 .squeeze(1)
