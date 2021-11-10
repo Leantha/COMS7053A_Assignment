@@ -1,8 +1,3 @@
-"""
-Modified the DQN method from https://github.com/raillab/dqn
-
-"""
-
 import numpy as np
 
 class ReplayBuffer:

@@ -2,7 +2,7 @@
 Modified the DQN method from https://github.com/raillab/dqn
 
 """
-
+import matplotlib.pyplot as plt
 import gym
 from gym.envs import registration
 from nle import nethack
@@ -38,7 +38,7 @@ parser.add_argument("--path", type=str, default="/home/clerence/Documents/MiniHa
 parser.add_argument("--test_seeds", type=list, default=[1,2,3,4,5], help="which seed to evaluate trained model.")
 parser.add_argument("--load", type=bool, default=False,
                     help="Load weights from file")
-parser.add_argument("--total_steps", default=1000000, type=int,
+parser.add_argument("--total_steps", default=10000, type=int,
                     help="Total number of steps to train over")
 parser.add_argument("--env", type=str, default="MiniHack-Quest-Hard-v0",
                     help="Gym environment.")
@@ -86,8 +86,8 @@ ACTIONS = [
     nethack.Command.FIRE,
     nethack.Command.KICK,
     nethack.Command.OPEN,
-    nethack.Command.UP,
-    nethack.Command.DOWN,
+    #nethack.Command.UP,
+    #nethack.Command.DOWN,
     nethack.Command.SEARCH,
     nethack.Command.ZAP
 ]
@@ -285,6 +285,23 @@ class Agent():
                 print("********************************************************")
                 losses = []
 
+                def moving_average(a, n):
+                    ret = np.cumsum(a, dtype=float)
+                    ret[n:] = ret[n:] - ret[:-n]
+                    return ret / n
+
+                moving_avg = moving_average(high_score, 25)
+
+                # Plot learning curve
+                plt.figure(figsize=(12, 6))
+                plt.plot(high_score)
+                plt.plot(moving_avg, '--')
+                plt.legend(['Score', 'Moving Average (w=50)'])
+                plt.title("DQN learning curve")
+                plt.xlabel("Episode")
+                plt.ylabel("Score")
+                plt.savefig('/home/clerence/Documents/MiniHack/DQN/reinforcerl.png')
+
     def test(self):
         for seed in self.flags.test_seeds:
             episode_rewards = [0.0]
@@ -317,64 +334,10 @@ def main(flags):
     else:
         agent.test()
 
-#############video#################################
-import gym
-import cv2
-
-
-cv2.ocl.setUseOpenCL(False)
-
-
-class RenderRGB(gym.Wrapper):
-    def __init__(self, env, key_name="pixel"):
-        super().__init__(env)
-        self.last_pixels = None
-        self.viewer = None
-        self.key_name = key_name
-
-        render_modes = env.metadata['render.modes']
-        render_modes.append("rgb_array")
-        env.metadata['render.modes'] = render_modes
-
-    def step(self, action):
-        obs, reward, done, info = self.env.step(action)
-        self.last_pixels = obs[self.key_name]
-        return obs, reward, done, info
-
-    def render(self, mode="human", **kwargs):
-        img = self.last_pixels
-
-        # Hacky but works
-        if mode != "human":
-            return img
-        else:
-            from gym.envs.classic_control import rendering
-
-            if self.viewer is None:
-                self.viewer = rendering.SimpleImageViewer()
-            self.viewer.imshow(img)
-            return self.viewer.isopen
-
-    def reset(self):
-        obs = self.env.reset()
-        self.last_pixels = obs[self.key_name]
-        return obs
-
-    def close(self):
-        if self.viewer is not None:
-            self.viewer.close()
-            self.viewer = None
-
-
-pixel_obs = "pixel_crop" # Or could be be 'pixel_crop'
-env = gym.make("MiniHack-Quest-Hard-v0", observation_keys=("glyphs", "blstats", pixel_obs))
-env.seed()
-env = RenderRGB(env, pixel_obs)
-env = gym.wrappers.Monitor(env, "recordings", force=True)
-
 
 #############################
 
 if __name__ == "__main__":
+
     flags = parser.parse_args()
     main(flags)

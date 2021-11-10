@@ -1,8 +1,3 @@
-"""
-Modified the DQN method from https://github.com/raillab/dqn
-
-"""
-
 import torch
 from torch.nn import functional as F
 from torch import nn
